@@ -433,7 +433,7 @@
         let monedaActual = "PEN";
 
         // 🔗 URL de tu Google Apps Script
-        const WEB_APP_URL = 'https://script.google.com/macros/library/d/1HqvqRpmN2ONR90Jeetufa5KBqrBNgiskEbwJDAiTQjdIaMMrbjA4NgXJ/2';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzmdQqyyhI6cEkepaXpEEnifALscjHrsFbhgEfqGuSV1yIeSnZ9E7zMsJw8Lvy_lM12/exec';
 
         // Datos iniciales
         const datosIniciales = [
@@ -679,14 +679,19 @@
         // ✅ Función para guardar la solicitud en Google Sheets
         function guardarSolicitud() {
             try {
-                const hoy = new Date();
-                const numeroReq = document.getElementById("numeroRequerimiento").textContent;
+                // Validar que los datos existan
+                const numero = document.getElementById("numeroRequerimiento").textContent;
                 const fechaSolicitud = document.getElementById("fechaSolicitud").value;
                 const solicitante = document.getElementById("solicitante").value;
                 const banco = document.getElementById("banco").value;
                 const transferencia = document.getElementById("transferencia").value;
                 const cuenta = document.getElementById("cuenta").value;
                 const totalGeneral = document.getElementById("totalGeneral").textContent;
+
+                if (!numero || !fechaSolicitud || !solicitante) {
+                    alert('Por favor, complete los campos obligatorios.');
+                    return;
+                }
 
                 // Obtener detalles de la tabla
                 const detalles = [];
@@ -707,10 +712,10 @@
 
                 // Crear objeto de solicitud
                 const solicitud = {
-                    numero: numeroReq,
-                    fecha: hoy.toISOString().split('T')[0],
+                    numero: numero,
+                    fecha: new Date().toISOString().split('T')[0],
                     fechaSolicitud: fechaSolicitud,
-                    fechaGuardado: hoy.toISOString().split('T')[0],
+                    fechaGuardado: new Date().toISOString().split('T')[0],
                     solicitante: solicitante,
                     banco: banco,
                     transferencia: transferencia,
@@ -731,11 +736,11 @@
                     return res.json();
                 })
                 .then(() => {
-                    alert(`Solicitud ${numeroReq} guardada correctamente.`);
+                    alert(`Solicitud ${numero} guardada correctamente.`);
                     // Actualizar número de requerimiento
-                    localStorage.setItem('ultimoNumero', numeroReq);
-                    localStorage.setItem('ultimoMes', hoy.getMonth().toString());
-                    localStorage.setItem('ultimoAnio', hoy.getFullYear().toString());
+                    localStorage.setItem('ultimoNumero', numero);
+                    localStorage.setItem('ultimoMes', new Date().getMonth().toString());
+                    localStorage.setItem('ultimoAnio', new Date().getFullYear().toString());
                     actualizarNumeroRequerimiento();
                     // Recargar lista
                     cargarSolicitudesGuardadas();
@@ -1530,6 +1535,4 @@
         }
     </script>
 </body>
-
 </html>
-
