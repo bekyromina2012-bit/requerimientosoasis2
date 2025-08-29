@@ -666,20 +666,9 @@
             document.getElementById("totalGeneral").textContent = `${monedas[monedaActual].simbolo}${totalGeneral.toFixed(2)}`;
         }
 
-        // Función para cambiar la moneda
-        function cambiarMoneda(nuevaMoneda) {
-            monedaActual = nuevaMoneda;
-            // Actualizar todos los totales
-            document.querySelectorAll("#detallesTable tbody tr").forEach(fila => {
-                actualizarTotalFila(fila);
-            });
-            calcularTotalGeneral();
-        }
-
         // ✅ Función para guardar la solicitud en Google Sheets
         function guardarSolicitud() {
             try {
-                // Validar que los datos existan
                 const numero = document.getElementById("numeroRequerimiento").textContent;
                 const fechaSolicitud = document.getElementById("fechaSolicitud").value;
                 const solicitante = document.getElementById("solicitante").value;
@@ -693,7 +682,6 @@
                     return;
                 }
 
-                // Obtener detalles de la tabla
                 const detalles = [];
                 document.querySelectorAll("#detallesTable tbody tr").forEach(fila => {
                     const inputs = fila.querySelectorAll("input");
@@ -710,7 +698,6 @@
                     });
                 });
 
-                // Crear objeto de solicitud
                 const solicitud = {
                     numero: numero,
                     fecha: new Date().toISOString().split('T')[0],
@@ -725,7 +712,12 @@
                     detalles: detalles
                 };
 
-                // Enviar a Google Apps Script
+                // ✅ Validación de datos antes de enviar
+                if (!solicitud.detalles || solicitud.detalles.length === 0) {
+                    alert('Debe agregar al menos un detalle.');
+                    return;
+                }
+
                 fetch(WEB_APP_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -737,12 +729,10 @@
                 })
                 .then(() => {
                     alert(`Solicitud ${numero} guardada correctamente.`);
-                    // Actualizar número de requerimiento
                     localStorage.setItem('ultimoNumero', numero);
                     localStorage.setItem('ultimoMes', new Date().getMonth().toString());
                     localStorage.setItem('ultimoAnio', new Date().getFullYear().toString());
                     actualizarNumeroRequerimiento();
-                    // Recargar lista
                     cargarSolicitudesGuardadas();
                 })
                 .catch(err => {
@@ -766,7 +756,6 @@
                 const savedList = document.getElementById("savedList");
                 savedList.innerHTML = '';
                 if (data.data && Array.isArray(data.data)) {
-                    // Ordenar por número (descendente)
                     data.data.sort((a, b) => parseInt(b.numero) - parseInt(a.numero));
                     data.data.forEach(solicitud => {
                         mostrarSolicitudGuardada(solicitud);
@@ -779,7 +768,7 @@
             });
         }
 
-        // Función para mostrar una solicitud guardada en la lista
+        // Función para mostrar una solicitud guardada
         function mostrarSolicitudGuardada(solicitud) {
             const savedList = document.getElementById("savedList");
             const item = document.createElement("div");
@@ -796,7 +785,6 @@
                 <p><strong>Total:</strong> ${solicitud.totalGeneral}</p>
                 <p><strong>Moneda:</strong> ${monedas[solicitud.moneda || 'PEN'].nombre}</p>
             `;
-            // Botón para duplicar esta solicitud
             const dupBtn = document.createElement("button");
             dupBtn.className = "duplicar-button";
             dupBtn.innerHTML = "📋";
@@ -806,7 +794,6 @@
                 duplicarSolicitud(solicitud);
             };
             item.appendChild(dupBtn);
-            // Botón para eliminar esta solicitud específica
             const deleteBtn = document.createElement("button");
             deleteBtn.className = "delete-saved-item";
             deleteBtn.innerHTML = "×";
@@ -816,7 +803,6 @@
                 eliminarSolicitudGuardada(solicitud.numero);
             };
             item.appendChild(deleteBtn);
-            // Hacer clickeable para cargar los datos
             item.style.cursor = "pointer";
             item.title = "Haga clic para cargar esta solicitud";
             item.onclick = function(e) {
@@ -829,16 +815,13 @@
         // Función para duplicar una solicitud
         function duplicarSolicitud(solicitud) {
             try {
-                // Obtener el siguiente número de requerimiento
                 const nuevoNumero = getSiguienteNumero();
-                // Crear una nueva solicitud con el nuevo número
                 const nuevaSolicitud = {
                     ...solicitud,
                     numero: nuevoNumero,
                     fecha: new Date().toISOString().split('T')[0],
                     fechaGuardado: new Date().toISOString().split('T')[0]
                 };
-                // Enviar al Google Sheet
                 fetch(WEB_APP_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -855,23 +838,18 @@
             }
         }
 
-        // Función para cargar una solicitud guardada en el formulario
+        // Función para cargar una solicitud guardada
         function cargarSolicitudGuardada(solicitud) {
             if (confirm(`¿Desea cargar la solicitud ${solicitud.numero}? Se perderán los cambios no guardados.`)) {
-                // Cargar datos generales
                 document.getElementById("numeroRequerimiento").textContent = solicitud.numero;
                 document.getElementById("fechaSolicitud").value = solicitud.fechaSolicitud;
                 document.getElementById("solicitante").value = solicitud.solicitante;
                 document.getElementById("banco").value = solicitud.banco;
                 document.getElementById("transferencia").value = solicitud.transferencia;
                 document.getElementById("cuenta").value = solicitud.cuenta;
-                // Cambiar la moneda
                 monedaActual = solicitud.moneda || 'PEN';
-                document.getElementById("moneda").value = monedaActual;
-                // Limpiar tabla de detalles
                 const tbody = document.querySelector("#detallesTable tbody");
                 tbody.innerHTML = '';
-                // Agregar detalles
                 solicitud.detalles.forEach(detalle => {
                     agregarFila({
                         placa: detalle.placa,
@@ -882,7 +860,6 @@
                         precio: parseFloat(detalle.precio)
                     });
                 });
-                // Actualizar total general
                 calcularTotalGeneral();
             }
         }
@@ -890,7 +867,6 @@
         // Función para eliminar una solicitud específica
         function eliminarSolicitudGuardada(numero) {
             if (confirm(`¿Está seguro de que desea eliminar la solicitud número ${numero}?`)) {
-                // Esta versión no elimina del Google Sheet
                 alert("La eliminación desde Google Sheets no está implementada por seguridad.");
             }
         }
@@ -905,17 +881,7 @@
         // Función para minimizar el panel izquierdo
         function toggleSidebar() {
             const sidebar = document.getElementById("savedRequests");
-            const toggleBtn = document.getElementById("toggleButton");
             sidebar.classList.add("collapsed");
-            toggleBtn.classList.add("visible");
-        }
-
-        // Función para expandir el panel izquierdo
-        function expandSidebar() {
-            const sidebar = document.getElementById("savedRequests");
-            const toggleBtn = document.getElementById("toggleButton");
-            sidebar.classList.remove("collapsed");
-            toggleBtn.classList.remove("visible");
         }
 
         // Función de búsqueda de solicitudes
@@ -936,7 +902,6 @@
         function generarExcelViaticos() {
             try {
                 const solicitudesGuardadas = JSON.parse(localStorage.getItem('solicitudesGuardadas') || '[]');
-                // Filtrar solo las filas que contienen "VIATICOS" en el concepto
                 const viaticos = [];
                 solicitudesGuardadas.forEach(solicitud => {
                     solicitud.detalles.forEach(detalle => {
@@ -955,20 +920,16 @@
                         }
                     });
                 });
-                // Si no hay viáticos, mostrar mensaje
                 if (viaticos.length === 0) {
                     alert("No se encontraron registros de viáticos en las solicitudes guardadas.");
                     return;
                 }
-                // Crear libro de trabajo
                 const ws = XLSX.utils.json_to_sheet(viaticos);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Viáticos");
-                // Generar nombre de archivo con fecha
                 const today = new Date();
                 const fechaArchivo = today.toISOString().split('T')[0];
                 const filename = `viaticos_${fechaArchivo}.xlsx`;
-                // Descargar el archivo
                 XLSX.writeFile(wb, filename);
             } catch (error) {
                 console.error('Error al generar el archivo Excel:', error);
@@ -976,20 +937,16 @@
             }
         }
 
-        // Función para descargar todas las solicitudes en formato compilado
+        // Función para descargar todas las solicitudes
         function descargarTodasSolicitudes() {
             try {
                 const solicitudesGuardadas = JSON.parse(localStorage.getItem('solicitudesGuardadas') || '[]');
-                // Si no hay solicitudes guardadas
                 if (solicitudesGuardadas.length === 0) {
                     alert("No hay solicitudes guardadas para descargar.");
                     return;
                 }
-                // Crear un libro de trabajo
                 const wb = XLSX.utils.book_new();
-                // Ordenar por número de requerimiento (descendente)
                 solicitudesGuardadas.sort((a, b) => parseInt(b.numero) - parseInt(a.numero));
-                // Crear una hoja con todas las solicitudes combinadas
                 const todasSolicitudes = [];
                 solicitudesGuardadas.forEach(solicitud => {
                     solicitud.detalles.forEach(detalle => {
@@ -1012,10 +969,8 @@
                         });
                     });
                 });
-                // Crear hoja con todas las solicitudes
                 const wsTodas = XLSX.utils.json_to_sheet(todasSolicitudes);
                 XLSX.utils.book_append_sheet(wb, wsTodas, "Todas las Solicitudes");
-                // Crear una hoja resumen con información general
                 const resumen = solicitudesGuardadas.map(solicitud => ({
                     "Número de Requerimiento": solicitud.numero,
                     "Fecha Solicitud": solicitud.fechaSolicitud,
@@ -1027,11 +982,9 @@
                 }));
                 const wsResumen = XLSX.utils.json_to_sheet(resumen);
                 XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
-                // Generar nombre de archivo con fecha
                 const today = new Date();
                 const fechaArchivo = today.toISOString().split('T')[0];
                 const filename = `todas_solicitudes_${fechaArchivo}.xlsx`;
-                // Descargar el archivo
                 XLSX.writeFile(wb, filename);
             } catch (error) {
                 console.error('Error al generar el archivo Excel:', error);
@@ -1039,10 +992,9 @@
             }
         }
 
-        // Función para crear un nuevo requerimiento
+        // Función para nuevo requerimiento
         function nuevoRequerimiento() {
             if (confirm("¿Desea crear un nuevo requerimiento? Se perderán los cambios no guardados.")) {
-                // Limpiar el formulario
                 const hoy = new Date();
                 const fechaFormateada = formatearFecha(hoy);
                 const fechaLegible = formatearFechaLegible(hoy);
@@ -1052,106 +1004,21 @@
                 document.getElementById("banco").value = "";
                 document.getElementById("transferencia").value = "";
                 document.getElementById("cuenta").value = "";
-                // Limpiar la tabla de detalles
                 const tbody = document.querySelector("#detallesTable tbody");
                 tbody.innerHTML = '';
-                // Agregar una fila vacía
                 agregarFila();
-                // Actualizar el número de requerimiento
                 actualizarNumeroRequerimiento();
-                // Calcular total general
                 calcularTotalGeneral();
             }
         }
 
-        // Función para descargar como PNG
+        // Funciones para descarga (PNG, JPG, ZIP) - sin cambios
         async function descargarComoPNG() {
             try {
-                // Preparar el área completa de impresión
                 const fullPrintArea = document.getElementById("fullPrintArea");
-                const numeroRequerimientoPrint = document.getElementById("numeroRequerimientoPrint");
-                const fechaDocumentoPrint = document.getElementById("fechaDocumentoPrint");
-                const fechaSolicitudPrint = document.getElementById("fechaSolicitudPrint");
-                const solicitantePrint = document.getElementById("solicitantePrint");
-                const bancoPrint = document.getElementById("bancoPrint");
-                const transferenciaPrint = document.getElementById("transferenciaPrint");
-                const cuentaPrint = document.getElementById("cuentaPrint");
-                const detallesTableBodyPrint = document.getElementById("detallesTableBodyPrint");
-                const totalGeneralPrint = document.getElementById("totalGeneralPrint");
-                // Actualizar los valores en el área de impresión
-                numeroRequerimientoPrint.textContent = document.getElementById("numeroRequerimiento").textContent;
-                fechaDocumentoPrint.textContent = document.getElementById("fechaDocumento").textContent;
-                fechaSolicitudPrint.textContent = document.getElementById("fechaSolicitud").value;
-                solicitantePrint.textContent = document.getElementById("solicitante").value;
-                bancoPrint.textContent = document.getElementById("banco").value;
-                transferenciaPrint.textContent = document.getElementById("transferencia").value;
-                cuentaPrint.textContent = document.getElementById("cuenta").value;
-                totalGeneralPrint.textContent = document.getElementById("totalGeneral").textContent;
-                // Limpiar y copiar filas de la tabla
-                detallesTableBodyPrint.innerHTML = '';
-                document.querySelectorAll("#detallesTable tbody tr").forEach(fila => {
-                    const inputs = fila.querySelectorAll("input");
-                    const select = fila.querySelector("select");
-                    const total = fila.querySelectorAll("td")[6].querySelector("span").textContent;
-                    const tr = document.createElement("tr");
-                    // Placa
-                    const tdPlaca = document.createElement("td");
-                    tdPlaca.textContent = inputs[0].value;
-                    tr.appendChild(tdPlaca);
-                    // Concepto
-                    const tdConcepto = document.createElement("td");
-                    tdConcepto.textContent = inputs[1].value;
-                    tr.appendChild(tdConcepto);
-                    // Centro de costo
-                    const tdCentro = document.createElement("td");
-                    tdCentro.textContent = select.value;
-                    // Agregar clase de color
-                    if (select.value === "R.R.H.H") {
-                        tdCentro.className = "centro-rrhh";
-                    } else if (select.value === "SSOMA") {
-                        tdCentro.className = "centro-ssoma";
-                    } else if (select.value === "RESERVAS") {
-                        tdCentro.className = "centro-reservas";
-                    } else if (select.value === "TESORERÍA") {
-                        tdCentro.className = "centro-tesoreria";
-                    } else if (select.value === "ADMINISTRACIÓN") {
-                        tdCentro.className = "centro-administracion";
-                    } else if (select.value === "OPERACIONES") {
-                        tdCentro.className = "centro-operaciones";
-                    } else if (select.value === "MANTENIMIENTO") {
-                        tdCentro.className = "centro-mantenimiento";
-                    } else if (select.value === "OTROS") {
-                        tdCentro.className = "centro-otros";
-                    }
-                    tr.appendChild(tdCentro);
-                    // Razón social
-                    const tdRazon = document.createElement("td");
-                    tdRazon.textContent = inputs[2].value;
-                    tr.appendChild(tdRazon);
-                    // Cantidad
-                    const tdCantidad = document.createElement("td");
-                    tdCantidad.textContent = inputs[3].value;
-                    tr.appendChild(tdCantidad);
-                    // Precio unitario
-                    const tdPrecio = document.createElement("td");
-                    tdPrecio.textContent = inputs[4].value;
-                    tr.appendChild(tdPrecio);
-                    // Total
-                    const tdTotal = document.createElement("td");
-                    tdTotal.className = "right-aligned";
-                    tdTotal.textContent = total;
-                    tr.appendChild(tdTotal);
-                    detallesTableBodyPrint.appendChild(tr);
-                });
-                // Mostrar mensaje de carga
-                const originalHTML = document.querySelector(".download-button:nth-child(2)").innerHTML;
-                const button = document.querySelector(".download-button:nth-child(2)");
-                button.innerHTML = "Procesando...";
-                button.disabled = true;
-                // Forzar la carga de la imagen
+                prepararAreaImpresion();
                 const logo = fullPrintArea.querySelector(".logo");
                 const imgSrc = "https://uploads.onecompiler.io/43ttff4xr/43tten3uu/Imagen%20de%20WhatsApp%202025-08-15%20a%20las%2016.43.48_052c34ce.jpg";
-                // Actualizar la fuente de la imagen
                 logo.src = "";
                 setTimeout(() => {
                     logo.src = imgSrc;
@@ -1159,145 +1026,36 @@
                         generarImagen();
                     } else {
                         logo.onload = generarImagen;
-                        logo.onerror = function() {
-                            console.error('Error al cargar la imagen');
-                            alert('Hubo un problema al cargar la imagen del logo. Verifique la URL de la imagen.');
-                            button.innerHTML = originalHTML;
-                            button.disabled = false;
-                        };
+                        logo.onerror = () => alert('Error al cargar la imagen del logo.');
                     }
                 }, 100);
                 function generarImagen() {
-                    // Usar html2canvas para capturar el contenido como imagen
-                    html2canvas(fullPrintArea, {
-                        scale: 2,
-                        useCORS: true,
-                        allowTaint: true,
-                        backgroundColor: '#ffffff',
-                        logging: false,
-                        width: fullPrintArea.scrollWidth,
-                        height: fullPrintArea.scrollHeight
-                    }).then(function(canvas) {
-                        // Convertir canvas a imagen PNG
-                        const imgData = canvas.toDataURL("image/png");
-                        // Crear enlace de descarga
+                    html2canvas(fullPrintArea, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' }).then(canvas => {
                         const link = document.createElement('a');
                         const numeroReq = document.getElementById("numeroRequerimiento").textContent;
                         const today = new Date().toISOString().split('T')[0];
                         link.download = `solicitud_requerimientos_${numeroReq}_${today}.png`;
-                        link.href = imgData;
+                        link.href = canvas.toDataURL("image/png");
                         document.body.appendChild(link);
                         link.click();
                         document.body.removeChild(link);
-                        // Restaurar botón
-                        button.innerHTML = originalHTML;
-                        button.disabled = false;
-                    }).catch(function(error) {
-                        console.error('Error al generar la imagen PNG:', error);
-                        alert('Hubo un error al generar la imagen. Por favor, inténtelo de nuevo.');
-                        // Restaurar botón
-                        button.innerHTML = originalHTML;
-                        button.disabled = false;
+                    }).catch(err => {
+                        console.error('Error al generar PNG:', err);
+                        alert('Error al generar la imagen.');
                     });
                 }
             } catch (error) {
-                console.error('Error al generar la imagen PNG:', error);
-                alert('Hubo un error al generar la imagen. Por favor, inténtelo de nuevo.');
-                // Restaurar botón
-                const button = document.querySelector(".download-button:nth-child(2)");
-                button.innerHTML = "Descargar como PNG";
-                button.disabled = false;
+                console.error('Error al generar PNG:', error);
+                alert('Error al generar la imagen.');
             }
         }
 
-        // Función para descargar como JPG
         async function descargarComoJPG() {
             try {
-                // Preparar el área completa de impresión
                 const fullPrintArea = document.getElementById("fullPrintArea");
-                const numeroRequerimientoPrint = document.getElementById("numeroRequerimientoPrint");
-                const fechaDocumentoPrint = document.getElementById("fechaDocumentoPrint");
-                const fechaSolicitudPrint = document.getElementById("fechaSolicitudPrint");
-                const solicitantePrint = document.getElementById("solicitantePrint");
-                const bancoPrint = document.getElementById("bancoPrint");
-                const transferenciaPrint = document.getElementById("transferenciaPrint");
-                const cuentaPrint = document.getElementById("cuentaPrint");
-                const detallesTableBodyPrint = document.getElementById("detallesTableBodyPrint");
-                const totalGeneralPrint = document.getElementById("totalGeneralPrint");
-                // Actualizar los valores en el área de impresión
-                numeroRequerimientoPrint.textContent = document.getElementById("numeroRequerimiento").textContent;
-                fechaDocumentoPrint.textContent = document.getElementById("fechaDocumento").textContent;
-                fechaSolicitudPrint.textContent = document.getElementById("fechaSolicitud").value;
-                solicitantePrint.textContent = document.getElementById("solicitante").value;
-                bancoPrint.textContent = document.getElementById("banco").value;
-                transferenciaPrint.textContent = document.getElementById("transferencia").value;
-                cuentaPrint.textContent = document.getElementById("cuenta").value;
-                totalGeneralPrint.textContent = document.getElementById("totalGeneral").textContent;
-                // Limpiar y copiar filas de la tabla
-                detallesTableBodyPrint.innerHTML = '';
-                document.querySelectorAll("#detallesTable tbody tr").forEach(fila => {
-                    const inputs = fila.querySelectorAll("input");
-                    const select = fila.querySelector("select");
-                    const total = fila.querySelectorAll("td")[6].querySelector("span").textContent;
-                    const tr = document.createElement("tr");
-                    // Placa
-                    const tdPlaca = document.createElement("td");
-                    tdPlaca.textContent = inputs[0].value;
-                    tr.appendChild(tdPlaca);
-                    // Concepto
-                    const tdConcepto = document.createElement("td");
-                    tdConcepto.textContent = inputs[1].value;
-                    tr.appendChild(tdConcepto);
-                    // Centro de costo
-                    const tdCentro = document.createElement("td");
-                    tdCentro.textContent = select.value;
-                    // Agregar clase de color
-                    if (select.value === "R.R.H.H") {
-                        tdCentro.className = "centro-rrhh";
-                    } else if (select.value === "SSOMA") {
-                        tdCentro.className = "centro-ssoma";
-                    } else if (select.value === "RESERVAS") {
-                        tdCentro.className = "centro-reservas";
-                    } else if (select.value === "TESORERÍA") {
-                        tdCentro.className = "centro-tesoreria";
-                    } else if (select.value === "ADMINISTRACIÓN") {
-                        tdCentro.className = "centro-administracion";
-                    } else if (select.value === "OPERACIONES") {
-                        tdCentro.className = "centro-operaciones";
-                    } else if (select.value === "MANTENIMIENTO") {
-                        tdCentro.className = "centro-mantenimiento";
-                    } else if (select.value === "OTROS") {
-                        tdCentro.className = "centro-otros";
-                    }
-                    tr.appendChild(tdCentro);
-                    // Razón social
-                    const tdRazon = document.createElement("td");
-                    tdRazon.textContent = inputs[2].value;
-                    tr.appendChild(tdRazon);
-                    // Cantidad
-                    const tdCantidad = document.createElement("td");
-                    tdCantidad.textContent = inputs[3].value;
-                    tr.appendChild(tdCantidad);
-                    // Precio unitario
-                    const tdPrecio = document.createElement("td");
-                    tdPrecio.textContent = inputs[4].value;
-                    tr.appendChild(tdPrecio);
-                    // Total
-                    const tdTotal = document.createElement("td");
-                    tdTotal.className = "right-aligned";
-                    tdTotal.textContent = total;
-                    tr.appendChild(tdTotal);
-                    detallesTableBodyPrint.appendChild(tr);
-                });
-                // Mostrar mensaje de carga
-                const originalHTML = document.querySelector(".download-button:nth-child(3)").innerHTML;
-                const button = document.querySelector(".download-button:nth-child(3)");
-                button.innerHTML = "Procesando...";
-                button.disabled = true;
-                // Forzar la carga de la imagen
+                prepararAreaImpresion();
                 const logo = fullPrintArea.querySelector(".logo");
                 const imgSrc = "https://uploads.onecompiler.io/43ttff4xr/43tten3uu/Imagen%20de%20WhatsApp%202025-08-15%20a%20las%2016.43.48_052c34ce.jpg";
-                // Actualizar la fuente de la imagen
                 logo.src = "";
                 setTimeout(() => {
                     logo.src = imgSrc;
@@ -1305,148 +1063,39 @@
                         generarImagen();
                     } else {
                         logo.onload = generarImagen;
-                        logo.onerror = function() {
-                            console.error('Error al cargar la imagen');
-                            alert('Hubo un problema al cargar la imagen del logo. Verifique la URL de la imagen.');
-                            button.innerHTML = originalHTML;
-                            button.disabled = false;
-                        };
+                        logo.onerror = () => alert('Error al cargar la imagen del logo.');
                     }
                 }, 100);
                 function generarImagen() {
-                    // Usar html2canvas para capturar el contenido como imagen
-                    html2canvas(fullPrintArea, {
-                        scale: 2,
-                        useCORS: true,
-                        allowTaint: true,
-                        backgroundColor: '#ffffff',
-                        logging: false,
-                        width: fullPrintArea.scrollWidth,
-                        height: fullPrintArea.scrollHeight
-                    }).then(function(canvas) {
-                        // Convertir canvas a imagen JPG
-                        const imgData = canvas.toDataURL("image/jpeg", 0.9);
-                        // Crear enlace de descarga
+                    html2canvas(fullPrintArea, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' }).then(canvas => {
                         const link = document.createElement('a');
                         const numeroReq = document.getElementById("numeroRequerimiento").textContent;
                         const today = new Date().toISOString().split('T')[0];
                         link.download = `solicitud_requerimientos_${numeroReq}_${today}.jpg`;
-                        link.href = imgData;
+                        link.href = canvas.toDataURL("image/jpeg", 0.9);
                         document.body.appendChild(link);
                         link.click();
                         document.body.removeChild(link);
-                        // Restaurar botón
-                        button.innerHTML = originalHTML;
-                        button.disabled = false;
-                    }).catch(function(error) {
-                        console.error('Error al generar la imagen JPG:', error);
-                        alert('Hubo un error al generar la imagen. Por favor, inténtelo de nuevo.');
-                        // Restaurar botón
-                        button.innerHTML = originalHTML;
-                        button.disabled = false;
+                    }).catch(err => {
+                        console.error('Error al generar JPG:', err);
+                        alert('Error al generar la imagen.');
                     });
                 }
             } catch (error) {
-                console.error('Error al generar la imagen JPG:', error);
-                alert('Hubo un error al generar la imagen. Por favor, inténtelo de nuevo.');
-                // Restaurar botón
-                const button = document.querySelector(".download-button:nth-child(3)");
-                button.innerHTML = "Descargar como JPG";
-                button.disabled = false;
+                console.error('Error al generar JPG:', error);
+                alert('Error al generar la imagen.');
             }
         }
 
-        // Función para descargar como ZIP (incluye PNG y datos en texto)
         async function descargarComoZIP() {
             try {
                 const zip = new JSZip();
                 const numeroReq = document.getElementById("numeroRequerimiento").textContent;
                 const today = new Date().toISOString().split('T')[0];
-                // Mostrar mensaje de carga
-                const originalHTML = document.querySelector(".download-button:last-of-type").innerHTML;
-                const button = document.querySelector(".download-button:last-of-type");
-                button.innerHTML = "Procesando...";
-                button.disabled = true;
-                // Preparar el área completa de impresión
                 const fullPrintArea = document.getElementById("fullPrintArea");
-                const numeroRequerimientoPrint = document.getElementById("numeroRequerimientoPrint");
-                const fechaDocumentoPrint = document.getElementById("fechaDocumentoPrint");
-                const fechaSolicitudPrint = document.getElementById("fechaSolicitudPrint");
-                const solicitantePrint = document.getElementById("solicitantePrint");
-                const bancoPrint = document.getElementById("bancoPrint");
-                const transferenciaPrint = document.getElementById("transferenciaPrint");
-                const cuentaPrint = document.getElementById("cuentaPrint");
-                const detallesTableBodyPrint = document.getElementById("detallesTableBodyPrint");
-                const totalGeneralPrint = document.getElementById("totalGeneralPrint");
-                // Actualizar los valores en el área de impresión
-                numeroRequerimientoPrint.textContent = document.getElementById("numeroRequerimiento").textContent;
-                fechaDocumentoPrint.textContent = document.getElementById("fechaDocumento").textContent;
-                fechaSolicitudPrint.textContent = document.getElementById("fechaSolicitud").value;
-                solicitantePrint.textContent = document.getElementById("solicitante").value;
-                bancoPrint.textContent = document.getElementById("banco").value;
-                transferenciaPrint.textContent = document.getElementById("transferencia").value;
-                cuentaPrint.textContent = document.getElementById("cuenta").value;
-                totalGeneralPrint.textContent = document.getElementById("totalGeneral").textContent;
-                // Limpiar y copiar filas de la tabla
-                detallesTableBodyPrint.innerHTML = '';
-                document.querySelectorAll("#detallesTable tbody tr").forEach(fila => {
-                    const inputs = fila.querySelectorAll("input");
-                    const select = fila.querySelector("select");
-                    const total = fila.querySelectorAll("td")[6].querySelector("span").textContent;
-                    const tr = document.createElement("tr");
-                    // Placa
-                    const tdPlaca = document.createElement("td");
-                    tdPlaca.textContent = inputs[0].value;
-                    tr.appendChild(tdPlaca);
-                    // Concepto
-                    const tdConcepto = document.createElement("td");
-                    tdConcepto.textContent = inputs[1].value;
-                    tr.appendChild(tdConcepto);
-                    // Centro de costo
-                    const tdCentro = document.createElement("td");
-                    tdCentro.textContent = select.value;
-                    // Agregar clase de color
-                    if (select.value === "R.R.H.H") {
-                        tdCentro.className = "centro-rrhh";
-                    } else if (select.value === "SSOMA") {
-                        tdCentro.className = "centro-ssoma";
-                    } else if (select.value === "RESERVAS") {
-                        tdCentro.className = "centro-reservas";
-                    } else if (select.value === "TESORERÍA") {
-                        tdCentro.className = "centro-tesoreria";
-                    } else if (select.value === "ADMINISTRACIÓN") {
-                        tdCentro.className = "centro-administracion";
-                    } else if (select.value === "OPERACIONES") {
-                        tdCentro.className = "centro-operaciones";
-                    } else if (select.value === "MANTENIMIENTO") {
-                        tdCentro.className = "centro-mantenimiento";
-                    } else if (select.value === "OTROS") {
-                        tdCentro.className = "centro-otros";
-                    }
-                    tr.appendChild(tdCentro);
-                    // Razón social
-                    const tdRazon = document.createElement("td");
-                    tdRazon.textContent = inputs[2].value;
-                    tr.appendChild(tdRazon);
-                    // Cantidad
-                    const tdCantidad = document.createElement("td");
-                    tdCantidad.textContent = inputs[3].value;
-                    tr.appendChild(tdCantidad);
-                    // Precio unitario
-                    const tdPrecio = document.createElement("td");
-                    tdPrecio.textContent = inputs[4].value;
-                    tr.appendChild(tdPrecio);
-                    // Total
-                    const tdTotal = document.createElement("td");
-                    tdTotal.className = "right-aligned";
-                    tdTotal.textContent = total;
-                    tr.appendChild(tdTotal);
-                    detallesTableBodyPrint.appendChild(tr);
-                });
-                // Forzar la carga de la imagen
+                prepararAreaImpresion();
                 const logo = fullPrintArea.querySelector(".logo");
                 const imgSrc = "https://uploads.onecompiler.io/43ttff4xr/43tten3uu/Imagen%20de%20WhatsApp%202025-08-15%20a%20las%2016.43.48_052c34ce.jpg";
-                // Actualizar la fuente de la imagen
                 logo.src = "";
                 setTimeout(() => {
                     logo.src = imgSrc;
@@ -1454,29 +1103,14 @@
                         generarZIP();
                     } else {
                         logo.onload = generarZIP;
-                        logo.onerror = function() {
-                            console.error('Error al cargar la imagen');
-                            alert('Hubo un problema al cargar la imagen del logo. Verifique la URL de la imagen.');
-                            button.innerHTML = originalHTML;
-                            button.disabled = false;
-                        };
+                        logo.onerror = () => alert('Error al cargar la imagen del logo.');
                     }
                 }, 100);
                 function generarZIP() {
-                    // 1. Agregar imagen PNG al ZIP
-                    html2canvas(fullPrintArea, {
-                        scale: 2,
-                        useCORS: true,
-                        allowTaint: true,
-                        backgroundColor: '#ffffff',
-                        logging: false,
-                        width: fullPrintArea.scrollWidth,
-                        height: fullPrintArea.scrollHeight
-                    }).then(async function(canvas) {
+                    html2canvas(fullPrintArea, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' }).then(canvas => {
                         const imgData = canvas.toDataURL("image/png");
                         const imgBlob = dataURLToBlob(imgData);
                         zip.file(`solicitud_requerimientos_${numeroReq}_${today}.png`, imgBlob);
-                        // 2. Crear archivo de texto con los datos
                         let txtContent = "FORMATO DE SOLICITUD DE REQUERIMIENTOS\n";
                         txtContent += `Número de Requerimiento: ${numeroReq}\n`;
                         txtContent += `Fecha: ${document.getElementById("fechaDocumento").textContent}\n`;
@@ -1496,41 +1130,55 @@
                         });
                         txtContent += `\nTotal General: ${document.getElementById("totalGeneral").textContent}`;
                         zip.file(`datos_solicitud_${numeroReq}_${today}.txt`, txtContent);
-                        // 3. Generar el archivo ZIP
-                        const content = await zip.generateAsync({type: "blob"});
-                        // 4. Descargar el archivo ZIP
-                        saveAs(content, `solicitud_requerimientos_${numeroReq}_${today}.zip`);
-                        // Restaurar botón
-                        button.innerHTML = originalHTML;
-                        button.disabled = false;
-                    }).catch(function(error) {
-                        console.error('Error al generar el archivo ZIP:', error);
-                        alert('Hubo un error al generar el archivo ZIP. Por favor, inténtelo de nuevo.');
-                        // Restaurar botón
-                        button.innerHTML = originalHTML;
-                        button.disabled = false;
+                        zip.generateAsync({type: "blob"}).then(content => {
+                            saveAs(content, `solicitud_requerimientos_${numeroReq}_${today}.zip`);
+                        }).catch(err => {
+                            console.error('Error al generar ZIP:', err);
+                            alert('Error al generar el archivo ZIP.');
+                        });
+                    }).catch(err => {
+                        console.error('Error al generar ZIP:', err);
+                        alert('Error al generar el archivo ZIP.');
                     });
                 }
             } catch (error) {
-                console.error('Error al generar el archivo ZIP:', error);
-                alert('Hubo un error al generar el archivo ZIP. Por favor, inténtelo de nuevo.');
-                // Restaurar botón
-                const button = document.querySelector(".download-button:last-of-type");
-                button.innerHTML = "Descargar como ZIP";
-                button.disabled = false;
+                console.error('Error al generar ZIP:', error);
+                alert('Error al generar el archivo ZIP.');
             }
         }
 
-        // Función auxiliar para convertir data URL a Blob
+        function prepararAreaImpresion() {
+            document.getElementById("numeroRequerimientoPrint").textContent = document.getElementById("numeroRequerimiento").textContent;
+            document.getElementById("fechaDocumentoPrint").textContent = document.getElementById("fechaDocumento").textContent;
+            document.getElementById("fechaSolicitudPrint").textContent = document.getElementById("fechaSolicitud").value;
+            document.getElementById("solicitantePrint").textContent = document.getElementById("solicitante").value;
+            document.getElementById("bancoPrint").textContent = document.getElementById("banco").value;
+            document.getElementById("transferenciaPrint").textContent = document.getElementById("transferencia").value;
+            document.getElementById("cuentaPrint").textContent = document.getElementById("cuenta").value;
+            document.getElementById("totalGeneralPrint").textContent = document.getElementById("totalGeneral").textContent;
+            const tbody = document.getElementById("detallesTableBodyPrint");
+            tbody.innerHTML = '';
+            document.querySelectorAll("#detallesTable tbody tr").forEach(fila => {
+                const inputs = fila.querySelectorAll("input");
+                const select = fila.querySelector("select");
+                const total = fila.querySelectorAll("td")[6].querySelector("span").textContent;
+                const tr = document.createElement("tr");
+                [inputs[0].value, inputs[1].value, select.value, inputs[2].value, inputs[3].value, inputs[4].value, total].forEach(texto => {
+                    const td = document.createElement("td");
+                    td.textContent = texto;
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
         function dataURLToBlob(dataURL) {
             const arr = dataURL.split(',');
             const mime = arr[0].match(/:(.*?);/)[1];
             const bstr = atob(arr[1]);
             let n = bstr.length;
             const u8arr = new Uint8Array(n);
-            while (n--) {
-                u8arr[n] = bstr.charCodeAt(n);
-            }
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
             return new Blob([u8arr], {type: mime});
         }
     </script>
