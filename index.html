@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formato de Solicitud de Requerimientos</title>
+    <!-- Librerías -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/JSZip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+        }
+        .saved-requests {
+            width: 300px;
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+            height: 100vh;
+            transition: all 0.3s ease;
+        }
+        .saved-requests.collapsed {
+            width: 0;
+            padding: 0;
+            overflow: hidden;
+            border: none;
+        }
+        .saved-requests-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .saved-requests-header button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: #666;
+        }
+        .saved-requests h2 {
+            margin: 0;
+            color: #333;
+            font-size: 18px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .saved-item {
+            background-color: white;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .saved-item h3 {
+            margin: 0 0 5px 0;
+            color: #2196F3;
+            font-size: 14px;
+        }
+        .saved-item p {
+            margin: 3px 0;
+            font-size: 12px;
+            color: #666;
+        }
+        .delete-saved-item {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .duplicar-button {
+            position: absolute;
+            top: 5px;
+            right: 30px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            height: 100vh;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .logo {
+            max-width: 150px;
+            max-height: 150px;
+            object-fit: contain;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+        .input-field {
+            width: 100%;
+            padding: 5px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .dropdown {
+            width: 100%;
+            padding: 5px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .button {
+            padding: 6px 10px;
+            margin: 0 2px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .download-button {
+            padding: 10px 15px;
+            margin-right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .save-button {
+            padding: 10px 15px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .nuevo-requerimiento-button {
+            padding: 10px 15px;
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .buttons-container {
+            display: flex;
+            margin: 20px 0;
+        }
+        .search-container {
+            margin-bottom: 15px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .search-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        .generador-viaticos-button {
+            width: 100%;
+            padding: 8px;
+            background-color: #9c27b0;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        .descarga-compilada-button {
+            width: 100%;
+            padding: 8px;
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        .clear-all-button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        /* Colores para Centro de Costo */
+        .centro-rrhh { background: #d4edda; color: #155724; }
+        .centro-ssoma { background: #fff3cd; color: #856404; }
+        .centro-reservas { background: #f8d7da; color: #721c24; }
+        .centro-tesoreria { background: #d1ecf1; color: #0c5460; }
+        .centro-administracion { background: #ffeaa7; color: #636e72; }
+        .centro-operaciones { background: #dfe6e9; color: #6c5ce7; }
+        .centro-mantenimiento { background: #b2bec3; color: #2d3436; }
+        .centro-otros { background: #d6a06f; color: #ffd700; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="saved-requests" id="savedRequests">
+            <div class="saved-requests-header">
+                <h2>Solicitudes Guardadas</h2>
+                <button type="button" onclick="toggleSidebar()" title="Minimizar">❮</button>
+            </div>
+            <div class="search-container">
+                <label class="search-label" for="searchNumero">Buscar por Número:</label>
+                <input type="text" id="searchNumero" class="search-input" placeholder="Ej: 001" oninput="buscarSolicitudes()">
+                <label class="search-label" for="searchNombre">Buscar por Nombre:</label>
+                <input type="text" id="searchNombre" class="search-input" placeholder="Ej: Francho" oninput="buscarSolicitudes()">
+            </div>
+            <button type="button" class="generador-viaticos-button" onclick="generarExcelViaticos()">
+                Generador de viáticos
+            </button>
+            <button type="button" class="descarga-compilada-button" onclick="descargarTodasSolicitudes()">
+                Descargar todas las solicitudes
+            </button>
+            <div id="savedList">
+                <!-- Las solicitudes guardadas se mostrarán aquí -->
+            </div>
+            <button type="button" class="clear-all-button" onclick="clearAllSavedRequests()">Borrar todos los requerimientos</button>
+        </div>
+        <div class="main-content">
+            <div class="header">
+                <img src="https://uploads.onecompiler.io/43ttff4xr/43tten3uu/Imagen%20de%20WhatsApp%202025-08-15%20a%20las%2016.43.48_052c34ce.jpg" alt="Logo OASIS" class="logo">
+                <div>
+                    <p><strong>FORMATO SOLICITUD DE REQUERIMIENTOS</strong></p>
+                    <table>
+                        <tr>
+                            <td>Número de Requerimiento:</td>
+                            <td><span id="numeroRequerimiento">001</span></td>
+                        </tr>
+                        <tr>
+                            <td>Fecha:</td>
+                            <td><span id="fechaDocumento"></span></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="print-area" id="printArea">
+                <table>
+                    <tr>
+                        <td>FECHA DE SOLICITUD:</td>
+                        <td><input type="date" class="input-field" id="fechaSolicitud"></td>
+                    </tr>
+                    <tr>
+                        <td>SOLICITANTE:</td>
+                        <td><input type="text" class="input-field" id="solicitante" value="REINA"></td>
+                    </tr>
+                    <tr>
+                        <td>BANCO:</td>
+                        <td><input type="text" class="input-field" id="banco"></td>
+                    </tr>
+                    <tr>
+                        <td>N° TRANSFERENCIA / EFECTIVO:</td>
+                        <td><input type="text" class="input-field" id="transferencia"></td>
+                    </tr>
+                    <tr>
+                        <td>N° CUENTA / CCI:</td>
+                        <td><input type="text" class="input-field" id="cuenta"></td>
+                    </tr>
+                </table>
+                <table id="detallesTable">
+                    <thead>
+                        <tr>
+                            <th>PLACA</th>
+                            <th>CONCEPTO</th>
+                            <th>CENTRO DE COSTO O GASTO</th>
+                            <th>RAZÓN SOCIAL CLIENTE O PROVEEDOR</th>
+                            <th>CANTIDAD</th>
+                            <th>P. UNITARIO</th>
+                            <th>TOTAL</th>
+                            <th>ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Las filas se generarán dinámicamente -->
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="6" style="text-align: right;">Total General</td>
+                            <td id="totalGeneral">S/.0.00</td>
+                            <td><button type="button" class="button add-button" onclick="agregarFila()">+</button></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="buttons-container">
+                <button type="button" class="nuevo-requerimiento-button" onclick="nuevoRequerimiento()">
+                    Nuevo Requerimiento
+                </button>
+                <button type="button" class="save-button" onclick="guardarSolicitud()">Guardar</button>
+                <button type="button" class="download-button" onclick="descargarComoPNG()">Descargar como PNG</button>
+                <button type="button" class="download-button" onclick="descargarComoJPG()">Descargar como JPG</button>
+                <button type="button" class="download-button" onclick="descargarComoZIP()">Descargar como ZIP</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Área oculta para captura completa con logo -->
+    <div style="position: absolute; left: -9999px; width: 800px;" id="fullPrintArea">
+        <div class="header">
+            <img src="https://uploads.onecompiler.io/43ttff4xr/43tten3uu/Imagen%20de%20WhatsApp%202025-08-15%20a%20las%2016.43.48_052c34ce.jpg" alt="Logo OASIS" class="logo">
+            <div>
+                <p><strong>FORMATO SOLICITUD DE REQUERIMIENTOS</strong></p>
+                <table>
+                    <tr>
+                        <td>Número de Requerimiento:</td>
+                        <td><span id="numeroRequerimientoPrint"></span></td>
+                    </tr>
+                    <tr>
+                        <td>Fecha:</td>
+                        <td><span id="fechaDocumentoPrint"></span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div id="printAreaClone">
+            <table>
+                <tr>
+                    <td>FECHA DE SOLICITUD:</td>
+                    <td id="fechaSolicitudPrint"></td>
+                </tr>
+                <tr>
+                    <td>SOLICITANTE:</td>
+                    <td id="solicitantePrint"></td>
+                </tr>
+                <tr>
+                    <td>BANCO:</td>
+                    <td id="bancoPrint"></td>
+                </tr>
+                <tr>
+                    <td>N° TRANSFERENCIA / EFECTIVO:</td>
+                    <td id="transferenciaPrint"></td>
+                </tr>
+                <tr>
+                    <td>N° CUENTA / CCI:</td>
+                    <td id="cuentaPrint"></td>
+                </tr>
+            </table>
+            <table id="detallesTablePrint">
+                <thead>
+                    <tr>
+                        <th>PLACA</th>
+                        <th>CONCEPTO</th>
+                        <th>CENTRO DE COSTO O GASTO</th>
+                        <th>RAZÓN SOCIAL CLIENTE O PROVEEDOR</th>
+                        <th>CANTIDAD</th>
+                        <th>P. UNITARIO</th>
+                        <th>TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody id="detallesTableBodyPrint">
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="6" style="text-align: right;">Total General</td>
+                        <td id="totalGeneralPrint">S/.0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Opciones para el dropdown de centro de costo
+        const centrosCosto = [
+            "R.R.H.H", "SSOMA", "RESERVAS", "TESORERÍA", 
+            "ADMINISTRACIÓN", "OPERACIONES", "MANTENIMIENTO", "OTROS"
+        ];
+        // Tipos de moneda
+        const monedas = {
+            PEN: { simbolo: "S/", nombre: "Soles Peruanos" },
+            USD: { simbolo: "$", nombre: "Dólares Estadounidenses" },
+            EUR: { simbolo: "€", nombre: "Euros" }
+        };
+        // Moneda actual
+        let monedaActual = "PEN";
+
+        // 🔗 URL de tu Google Apps Script
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzmdQqyyhI6cEkepaXpEEnifALscjHrsFbhgEfqGuSV1yIeSnZ9E7zMsJw8Lvy_lM12/exec';
+
+        // Datos iniciales
+        const datosIniciales = [
+            { placa: "X5X-522", concepto: "VIATICOS DEL 02 DE JULIO RELEVO EN KITENI", centro: "OPERACIONES", razon: "WILLIAN QUISPE", cantidad: 1, precio: 30.00 },
+            { placa: "X5X-522", concepto: "ALQUILER DE UNA HABITACIÓN CON GARAJE MES DE JULIO (SR. WILDO QUISPE)", centro: "OPERACIONES", razon: "MARIA HUAMAN TITTO", cantidad: 1, precio: 420.00 },
+            { placa: "X5X-522", concepto: "PAGO POR ENERGÍA (LUZ) MES DE JUNIO", centro: "OPERACIONES", razon: "MARIA HUAMAN TITTO", cantidad: 1, precio: 25.00 },
+            { placa: "X5X-522", concepto: "PAGO POR AGUA POTABLE MES DE JUNIO", centro: "OPERACIONES", razon: "MARIA HUAMAN TITTO", cantidad: 1, precio: 5.00 },
+            { placa: "", concepto: "ARRENDAMIENTO DE HABITACIÓN JR LIBERTAD - JULIO", centro: "ADMINISTRACIÓN", razon: "ELOI ALVAREZ", cantidad: 1, precio: 315.00 },
+            { placa: "", concepto: "IMPUESTO DE ARRENDAMIENTO - JULIO", centro: "ADMINISTRACIÓN", razon: "ELOI ALVAREZ", cantidad: 1, precio: 16.00 },
+            { placa: "X6B-331", concepto: "MOVILIDAD DEL 01 AL 15 DE JULIO", centro: "OPERACIONES", razon: "JHOSEPAVALOS", cantidad: 15, precio: 7.00 },
+            { placa: "X6B-331", concepto: "VIATICOS DEL 01 AL 15 DE JULIO", centro: "OPERACIONES", razon: "JHOSEPAVALOS", cantidad: 15, precio: 27.00 },
+            { placa: "TALLER", concepto: "ALMUERZO DEL 01 AL 15 DE JUNIO CON DESCANSO VIERNES", centro: "OPERACIONES", razon: "SR URBANO", cantidad: 13, precio: 8.00 },
+            { placa: "TALLER", concepto: "CENA DEL 01 AL 15 DE JULIO CON DESCANSO VIERNES", centro: "OPERACIONES", razon: "SR URBANO", cantidad: 13, precio: 8.00 },
+            { placa: "TALLER", concepto: "DESAYUNO DEL 01 AL 15 DE JULIO CON DESCANSO VIERNES", centro: "OPERACIONES", razon: "SR URBANO", cantidad: 13, precio: 3.50 },
+            { placa: "OFICINA", concepto: "ALMUERZO DEL 01 AL 15 DE JUNIO CON DESCANSO VIERNES", centro: "OPERACIONES", razon: "FLORENTINO TITTO", cantidad: 13, precio: 8.00 },
+            { placa: "OFICINA", concepto: "CENA DEL 01 AL 15 DE JULIO CON DESCANSO VIERNES", centro: "OPERACIONES", razon: "FLORENTINO TITTO", cantidad: 13, precio: 8.00 },
+            { placa: "OFICINA", concepto: "DESAYUNO DEL 01 AL 15 DE JULIO CON DESCANSO VIERNES", centro: "OPERACIONES", razon: "FLORENTINO TITTO", cantidad: 13, precio: 3.50 }
+        ];
+
+        // Función para formatear la fecha en YYYY-MM-DD
+        function formatearFecha(fecha) {
+            const year = fecha.getFullYear();
+            const month = String(fecha.getMonth() + 1).padStart(2, '0');
+            const day = String(fecha.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Función para formatear la fecha en formato legible (dd/mm/yyyy)
+        function formatearFechaLegible(fecha) {
+            const day = String(fecha.getDate()).padStart(2, '0');
+            const month = String(fecha.getMonth() + 1).padStart(2, '0');
+            const year = fecha.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
+        // Función para obtener el siguiente número de requerimiento
+        function getSiguienteNumero() {
+            const hoy = new Date();
+            const mesActual = hoy.getMonth();
+            const anioActual = hoy.getFullYear();
+            // Obtener el último número usado del localStorage
+            let ultimoNumero = localStorage.getItem('ultimoNumero');
+            let ultimoMes = localStorage.getItem('ultimoMes');
+            let ultimoAnio = localStorage.getItem('ultimoAnio');
+            // Si es un mes nuevo o año nuevo, reiniciar el contador
+            if (ultimoMes === null || ultimoAnio === null || 
+                parseInt(ultimoMes) !== mesActual || parseInt(ultimoAnio) !== anioActual) {
+                return "001";
+            } else {
+                // Incrementar el número
+                const nuevoNumero = (parseInt(ultimoNumero) + 1).toString();
+                return nuevoNumero.padStart(3, '0');
+            }
+        }
+
+        // Función para actualizar el número de requerimiento en pantalla
+        function actualizarNumeroRequerimiento() {
+            const numero = getSiguienteNumero();
+            document.getElementById("numeroRequerimiento").textContent = numero;
+        }
+
+        // Establecer fechas actuales al cargar la página
+        window.onload = function() {
+            const hoy = new Date();
+            const fechaFormateada = formatearFecha(hoy);
+            const fechaLegible = formatearFechaLegible(hoy);
+            document.getElementById("fechaSolicitud").value = fechaFormateada;
+            document.getElementById("fechaDocumento").textContent = fechaLegible;
+            // Actualizar número de requerimiento
+            actualizarNumeroRequerimiento();
+            // Cargar datos iniciales
+            datosIniciales.forEach(dato => {
+                agregarFila(dato);
+            });
+            calcularTotalGeneral();
+            // Cargar solicitudes guardadas DESDE GOOGLE SHEETS
+            cargarSolicitudesGuardadas();
+        };
+
+        function agregarFila(datos = null) {
+            const tbody = document.querySelector("#detallesTable tbody");
+            const fila = document.createElement("tr");
+            // Placa
+            const celdaPlaca = document.createElement("td");
+            const inputPlaca = document.createElement("input");
+            inputPlaca.type = "text";
+            inputPlaca.className = "input-field";
+            inputPlaca.value = datos ? datos.placa : "";
+            celdaPlaca.appendChild(inputPlaca);
+            // Concepto
+            const celdaConcepto = document.createElement("td");
+            const inputConcepto = document.createElement("input");
+            inputConcepto.type = "text";
+            inputConcepto.className = "input-field";
+            inputConcepto.style.width = "100%";
+            inputConcepto.value = datos ? datos.concepto : "";
+            celdaConcepto.appendChild(inputConcepto);
+            // Centro de costo
+            const celdaCentro = document.createElement("td");
+            const selectCentro = document.createElement("select");
+            selectCentro.className = "dropdown";
+            centrosCosto.forEach(centro => {
+                const option = document.createElement("option");
+                option.value = centro;
+                option.textContent = centro;
+                if (datos && centro === datos.centro) {
+                    option.selected = true;
+                }
+                selectCentro.appendChild(option);
+            });
+            celdaCentro.appendChild(selectCentro);
+            // Actualizar color cuando cambie la selección
+            selectCentro.addEventListener("change", function() {
+                actualizarColorCentro(fila, this.value);
+            });
+            // Razón social
+            const celdaRazon = document.createElement("td");
+            const inputRazon = document.createElement("input");
+            inputRazon.type = "text";
+            inputRazon.className = "input-field";
+            inputRazon.value = datos ? datos.razon : "";
+            celdaRazon.appendChild(inputRazon);
+            // Cantidad
+            const celdaCantidad = document.createElement("td");
+            const inputCantidad = document.createElement("input");
+            inputCantidad.type = "number";
+            inputCantidad.className = "input-field";
+            inputCantidad.value = datos ? datos.cantidad : 1;
+            inputCantidad.min = "0";
+            inputCantidad.step = "1";
+            celdaCantidad.appendChild(inputCantidad);
+            // Precio unitario
+            const celdaPrecio = document.createElement("td");
+            const inputPrecio = document.createElement("input");
+            inputPrecio.type = "number";
+            inputPrecio.className = "input-field";
+            inputPrecio.value = datos ? datos.precio : 0;
+            inputPrecio.min = "0";
+            inputPrecio.step = "0.01";
+            celdaPrecio.appendChild(inputPrecio);
+            // Total
+            const celdaTotal = document.createElement("td");
+            celdaTotal.className = "right-aligned";
+            const spanTotal = document.createElement("span");
+            spanTotal.textContent = `${monedas[monedaActual].simbolo}0.00`;
+            celdaTotal.appendChild(spanTotal);
+            // Acciones
+            const celdaAcciones = document.createElement("td");
+            const botonEliminar = document.createElement("button");
+            botonEliminar.type = "button";
+            botonEliminar.className = "button delete-button";
+            botonEliminar.textContent = "-";
+            botonEliminar.onclick = function() {
+                tbody.removeChild(fila);
+                calcularTotalGeneral();
+            };
+            celdaAcciones.appendChild(botonEliminar);
+            // Agregar celdas a la fila
+            fila.appendChild(celdaPlaca);
+            fila.appendChild(celdaConcepto);
+            fila.appendChild(celdaCentro);
+            fila.appendChild(celdaRazon);
+            fila.appendChild(celdaCantidad);
+            fila.appendChild(celdaPrecio);
+            fila.appendChild(celdaTotal);
+            fila.appendChild(celdaAcciones);
+            // Agregar fila al tbody
+            tbody.appendChild(fila);
+            // Actualizar color inicial
+            if (datos) {
+                actualizarColorCentro(fila, datos.centro);
+            }
+            // Actualizar total cuando cambien cantidad o precio
+            inputCantidad.addEventListener("input", function() {
+                actualizarTotalFila(fila);
+                calcularTotalGeneral();
+            });
+            inputPrecio.addEventListener("input", function() {
+                actualizarTotalFila(fila);
+                calcularTotalGeneral();
+            });
+        }
+
+        function actualizarColorCentro(fila, valor) {
+            // Eliminar todas las clases de color
+            const celdaCentro = fila.querySelectorAll("td")[2];
+            celdaCentro.className = "";
+            // Agregar la clase correspondiente
+            if (valor === "R.R.H.H") {
+                celdaCentro.classList.add("centro-rrhh");
+            } else if (valor === "SSOMA") {
+                celdaCentro.classList.add("centro-ssoma");
+            } else if (valor === "RESERVAS") {
+                celdaCentro.classList.add("centro-reservas");
+            } else if (valor === "TESORERÍA") {
+                celdaCentro.classList.add("centro-tesoreria");
+            } else if (valor === "ADMINISTRACIÓN") {
+                celdaCentro.classList.add("centro-administracion");
+            } else if (valor === "OPERACIONES") {
+                celdaCentro.classList.add("centro-operaciones");
+            } else if (valor === "MANTENIMIENTO") {
+                celdaCentro.classList.add("centro-mantenimiento");
+            } else if (valor === "OTROS") {
+                celdaCentro.classList.add("centro-otros");
+            }
+            // Actualizar el texto con el valor
+            const select = celdaCentro.querySelector("select");
+            if (select) {
+                select.value = valor;
+            }
+        }
+
+        function actualizarTotalFila(fila) {
+            const inputs = fila.querySelectorAll("input");
+            const cantidad = parseFloat(inputs[3].value) || 0;
+            const precio = parseFloat(inputs[4].value) || 0;
+            const total = cantidad * precio;
+            const celdaTotal = fila.querySelectorAll("td")[6].querySelector("span");
+            celdaTotal.textContent = `${monedas[monedaActual].simbolo}${total.toFixed(2)}`;
+        }
+
+        function calcularTotalGeneral() {
+            let totalGeneral = 0;
+            document.querySelectorAll("#detallesTable tbody tr").forEach(fila => {
+                actualizarTotalFila(fila);
+                const totalTexto = fila.querySelectorAll("td")[6].querySelector("span").textContent;
+                const total = parseFloat(totalTexto.replace(/[^\d.-]/g, "")) || 0;
+                totalGeneral += total;
+            });
+            document.getElementById("totalGeneral").textContent = `${monedas[monedaActual].simbolo}${totalGeneral.toFixed(2)}`;
+        }
+
+        // Función para cambiar la moneda
+        function cambiarMoneda(nuevaMoneda) {
+            monedaActual = nuevaMoneda;
+            // Actualizar todos los totales
+            document.querySelectorAll("#detallesTable tbody tr").forEach(fila => {
+                actualizarTotalFila(fila);
+            });
+            calcularTotalGeneral();
+        }
+
+        // ✅ Función para guardar la solicitud en Google Sheets
+        function guardarSolicitud() {
+            try {
+                const hoy = new Date();
+                const numeroReq = document.getElementById("numeroRequerimiento").textContent;
+                const fechaSolicitud = document.getElementById("fechaSolicitud").value;
+                const solicitante = document.getElementById("solicitante").value;
+                const banco = document.getElementById("banco").value;
+                const transferencia = document.getElementById("transferencia").value;
+                const cuenta = document.getElementById("cuenta").value;
+                const totalGeneral = document.getElementById("totalGeneral").textContent;
+
+                // Obtener detalles de la tabla
+                const detalles = [];
+                document.querySelectorAll("#detallesTable tbody tr").forEach(fila => {
+                    const inputs = fila.querySelectorAll("input");
+                    const select = fila.querySelector("select");
+                    const total = fila.querySelectorAll("td")[6].querySelector("span").textContent;
+                    detalles.push({
+                        placa: inputs[0].value,
+                        concepto: inputs[1].value,
+                        centro: select.value,
+                        razon: inputs[2].value,
+                        cantidad: inputs[3].value,
+                        precio: inputs[4].value,
+                        total: total
+                    });
+                });
+
+                // Crear objeto de solicitud
+                const solicitud = {
+                    numero: numeroReq,
+                    fecha: hoy.toISOString().split('T')[0],
+                    fechaSolicitud: fechaSolicitud,
+                    fechaGuardado: hoy.toISOString().split('T')[0],
+                    solicitante: solicitante,
+                    banco: banco,
+                    transferencia: transferencia,
+                    cuenta: cuenta,
+                    totalGeneral: totalGeneral,
+                    moneda: monedaActual,
+                    detalles: detalles
+                };
+
+                // Enviar a Google Apps Script
+                fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(solicitud)
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error(`Error de red: ${res.status}`);
+                    return res.json();
+                })
+                .then(() => {
+                    alert(`Solicitud ${numeroReq} guardada correctamente.`);
+                    // Actualizar número de requerimiento
+                    localStorage.setItem('ultimoNumero', numeroReq);
+                    localStorage.setItem('ultimoMes', hoy.getMonth().toString());
+                    localStorage.setItem('ultimoAnio', hoy.getFullYear().toString());
+                    actualizarNumeroRequerimiento();
+                    // Recargar lista
+                    cargarSolicitudesGuardadas();
+                })
+                .catch(err => {
+                    console.error('Error al guardar en Google Sheets:', err);
+                    alert('Error al guardar. Verifique conexión.');
+                });
+            } catch (error) {
+                console.error('Error al guardar la solicitud:', error);
+                alert('Hubo un error al guardar la solicitud.');
+            }
+        }
+
+        // ✅ Función para cargar solicitudes desde Google Sheets
+        function cargarSolicitudesGuardadas() {
+            fetch(WEB_APP_URL)
+            .then(res => {
+                if (!res.ok) throw new Error(`Error de red: ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                const savedList = document.getElementById("savedList");
+                savedList.innerHTML = '';
+                if (data.data && Array.isArray(data.data)) {
+                    // Ordenar por número (descendente)
+                    data.data.sort((a, b) => parseInt(b.numero) - parseInt(a.numero));
+                    data.data.forEach(solicitud => {
+                        mostrarSolicitudGuardada(solicitud);
+                    });
+                }
+            })
+            .catch(err => {
+                console.error('Error al cargar desde Google Sheets:', err);
+                document.getElementById("savedList").innerHTML = '<p>Error al cargar datos. Verifique conexión.</p>';
+            });
+        }
+
+        // Función para mostrar una solicitud guardada en la lista
+        function mostrarSolicitudGuardada(solicitud) {
+            const savedList = document.getElementById("savedList");
+            const item = document.createElement("div");
+            item.className = "saved-item";
+            const fechaSolicitud = new Date(solicitud.fechaSolicitud);
+            const fechaFormateada = fechaSolicitud.toLocaleDateString();
+            const fechaGuardado = solicitud.fechaGuardado ? new Date(solicitud.fechaGuardado) : new Date(solicitud.fecha);
+            const fechaGuardadoFormateada = fechaGuardado.toLocaleDateString();
+            item.innerHTML = `
+                <h3>Req-${solicitud.numero}</h3>
+                <p><strong>Fecha Solicitud:</strong> ${fechaFormateada}</p>
+                <p><strong>Fecha Guardado:</strong> ${fechaGuardadoFormateada}</p>
+                <p><strong>Solicitante:</strong> ${solicitud.solicitante}</p>
+                <p><strong>Total:</strong> ${solicitud.totalGeneral}</p>
+                <p><strong>Moneda:</strong> ${monedas[solicitud.moneda || 'PEN'].nombre}</p>
+            `;
+            // Botón para duplicar esta solicitud
+            const dupBtn = document.createElement("button");
+            dupBtn.className = "duplicar-button";
+            dupBtn.innerHTML = "📋";
+            dupBtn.title = "Duplicar esta solicitud";
+            dupBtn.onclick = function(e) {
+                e.stopPropagation();
+                duplicarSolicitud(solicitud);
+            };
+            item.appendChild(dupBtn);
+            // Botón para eliminar esta solicitud específica
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "delete-saved-item";
+            deleteBtn.innerHTML = "×";
+            deleteBtn.title = "Eliminar esta solicitud";
+            deleteBtn.onclick = function(e) {
+                e.stopPropagation();
+                eliminarSolicitudGuardada(solicitud.numero);
+            };
+            item.appendChild(deleteBtn);
+            // Hacer clickeable para cargar los datos
+            item.style.cursor = "pointer";
+            item.title = "Haga clic para cargar esta solicitud";
+            item.onclick = function(e) {
+                if (e.target === deleteBtn || e.target === dupBtn) return;
+                cargarSolicitudGuardada(solicitud);
+            };
+            savedList.appendChild(item);
+        }
+
+        // Función para duplicar una solicitud
+        function duplicarSolicitud(solicitud) {
+            try {
+                // Obtener el siguiente número de requerimiento
+                const nuevoNumero = getSiguienteNumero();
+                // Crear una nueva solicitud con el nuevo número
+                const nuevaSolicitud = {
+                    ...solicitud,
+                    numero: nuevoNumero,
+                    fecha: new Date().toISOString().split('T')[0],
+                    fechaGuardado: new Date().toISOString().split('T')[0]
+                };
+                // Enviar al Google Sheet
+                fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(nuevaSolicitud)
+                })
+                .then(() => {
+                    alert(`Solicitud duplicada correctamente con número ${nuevoNumero}`);
+                    actualizarNumeroRequerimiento();
+                    cargarSolicitudesGuardadas();
+                });
+            } catch (error) {
+                console.error('Error al duplicar la solicitud:', error);
+                alert('Hubo un error al duplicar la solicitud.');
+            }
+        }
+
+        // Función para cargar una solicitud guardada en el formulario
+        function cargarSolicitudGuardada(solicitud) {
+            if (confirm(`¿Desea cargar la solicitud ${solicitud.numero}? Se perderán los cambios no guardados.`)) {
+                // Cargar datos generales
+                document.getElementById("numeroRequerimiento").textContent = solicitud.numero;
+                document.getElementById("fechaSolicitud").value = solicitud.fechaSolicitud;
+                document.getElementById("solicitante").value = solicitud.solicitante;
+                document.getElementById("banco").value = solicitud.banco;
+                document.getElementById("transferencia").value = solicitud.transferencia;
+                document.getElementById("cuenta").value = solicitud.cuenta;
+                // Cambiar la moneda
+                monedaActual = solicitud.moneda || 'PEN';
+                document.getElementById("moneda").value = monedaActual;
+                // Limpiar tabla de detalles
+                const tbody = document.querySelector("#detallesTable tbody");
+                tbody.innerHTML = '';
+                // Agregar detalles
+                solicitud.detalles.forEach(detalle => {
+                    agregarFila({
+                        placa: detalle.placa,
+                        concepto: detalle.concepto,
+                        centro: detalle.centro,
+                        razon: detalle.razon,
+                        cantidad: parseInt(detalle.cantidad),
+                        precio: parseFloat(detalle.precio)
+                    });
+                });
+                // Actualizar total general
+                calcularTotalGeneral();
+            }
+        }
+
+        // Función para eliminar una solicitud específica
+        function eliminarSolicitudGuardada(numero) {
+            if (confirm(`¿Está seguro de que desea eliminar la solicitud número ${numero}?`)) {
+                // Esta versión no elimina del Google Sheet
+                alert("La eliminación desde Google Sheets no está implementada por seguridad.");
+            }
+        }
+
+        // Función para borrar todas las solicitudes guardadas
+        function clearAllSavedRequests() {
+            if (confirm("Esta acción no se puede deshacer en Google Sheets. ¿Continuar?")) {
+                alert("La limpieza masiva no está habilitada por seguridad.");
+            }
+        }
+
+        // Función para minimizar el panel izquierdo
+        function toggleSidebar() {
+            const sidebar = document.getElementById("savedRequests");
+            const toggleBtn = document.getElementById("toggleButton");
+            sidebar.classList.add("collapsed");
+            toggleBtn.classList.add("visible");
+        }
+
+        // Función para expandir el panel izquierdo
+        function expandSidebar() {
+            const sidebar = document.getElementById("savedRequests");
+            const toggleBtn = document.getElementById("toggleButton");
+            sidebar.classList.remove("collapsed");
+            toggleBtn.classList.remove("visible");
+        }
+
+        // Función de búsqueda de solicitudes
+        function buscarSolicitudes() {
+            const searchNumero = document.getElementById("searchNumero").value.toLowerCase();
+            const searchNombre = document.getElementById("searchNombre").value.toLowerCase();
+            const savedList = document.getElementById("savedList");
+            const items = savedList.querySelectorAll(".saved-item");
+            items.forEach(item => {
+                const numero = item.querySelector("h3").textContent.toLowerCase();
+                const nombre = item.querySelector("p").textContent.toLowerCase();
+                const visible = numero.includes(searchNumero) && nombre.includes(searchNombre);
+                item.style.display = visible ? "block" : "none";
+            });
+        }
+
+        // Función para generar Excel de viáticos
+        function generarExcelViaticos() {
+            try {
+                const solicitudesGuardadas = JSON.parse(localStorage.getItem('solicitudesGuardadas') || '[]');
+                // Filtrar solo las filas que contienen "VIATICOS" en el concepto
+                const viaticos = [];
+                solicitudesGuardadas.forEach(solicitud => {
+                    solicitud.detalles.forEach(detalle => {
+                        if (detalle.concepto.toUpperCase().includes("VIATICOS")) {
+                            viaticos.push({
+                                "Número de Requerimiento": solicitud.numero,
+                                "Fecha": solicitud.fechaSolicitud,
+                                "Solicitante": solicitud.solicitante,
+                                "Concepto": detalle.concepto,
+                                "Centro de Costo": detalle.centro,
+                                "Razón Social": detalle.razon,
+                                "Cantidad": detalle.cantidad,
+                                "Precio Unitario": detalle.precio,
+                                "Total": detalle.total
+                            });
+                        }
+                    });
+                });
+                // Si no hay viáticos, mostrar mensaje
+                if (viaticos.length === 0) {
+                    alert("No se encontraron registros de viáticos en las solicitudes guardadas.");
+                    return;
+                }
+                // Crear libro de trabajo
+                const ws = XLSX.utils.json_to_sheet(viaticos);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Viáticos");
+                // Generar nombre de archivo con fecha
+                const today = new Date();
+                const fechaArchivo = today.toISOString().split('T')[0];
+                const filename = `viaticos_${fechaArchivo}.xlsx`;
+                // Descargar el archivo
+                XLSX.writeFile(wb, filename);
+            } catch (error) {
+                console.error('Error al generar el archivo Excel:', error);
+                alert('Hubo un error al generar el archivo Excel. Por favor, inténtelo de nuevo.');
+            }
+        }
+
+        // Función para descargar todas las solicitudes en formato compilado
+        function descargarTodasSolicitudes() {
+            try {
+                const solicitudesGuardadas = JSON.parse(localStorage.getItem('solicitudesGuardadas') || '[]');
+                // Si no hay solicitudes guardadas
+                if (solicitudesGuardadas.length === 0) {
+                    alert("No hay solicitudes guardadas para descargar.");
+                    return;
+                }
+                // Crear un libro de trabajo
+                const wb = XLSX.utils.book_new();
+                // Ordenar por número de requerimiento (descendente)
+                solicitudesGuardadas.sort((a, b) => parseInt(b.numero) - parseInt(a.numero));
+                // Crear una hoja con todas las solicitudes combinadas
+                const todasSolicitudes = [];
+                solicitudesGuardadas.forEach(solicitud => {
+                    solicitud.detalles.forEach(detalle => {
+                        todasSolicitudes.push({
+                            "Número de Requerimiento": solicitud.numero,
+                            "Fecha Solicitud": solicitud.fechaSolicitud,
+                            "Fecha Guardado": solicitud.fechaGuardado || solicitud.fecha,
+                            "Solicitante": solicitud.solicitante,
+                            "Banco": solicitud.banco,
+                            "Transferencia": solicitud.transferencia,
+                            "Cuenta": solicitud.cuenta,
+                            "Placa": detalle.placa,
+                            "Concepto": detalle.concepto,
+                            "Centro de Costo": detalle.centro,
+                            "Razón Social": detalle.razon,
+                            "Cantidad": detalle.cantidad,
+                            "Precio Unitario": detalle.precio,
+                            "Total": detalle.total,
+                            "Moneda": monedas[solicitud.moneda || 'PEN'].nombre
+                        });
+                    });
+                });
+                // Crear hoja con todas las solicitudes
+                const wsTodas = XLSX.utils.json_to_sheet(todasSolicitudes);
+                XLSX.utils.book_append_sheet(wb, wsTodas, "Todas las Solicitudes");
+                // Crear una hoja resumen con información general
+                const resumen = solicitudesGuardadas.map(solicitud => ({
+                    "Número de Requerimiento": solicitud.numero,
+                    "Fecha Solicitud": solicitud.fechaSolicitud,
+                    "Fecha Guardado": solicitud.fechaGuardado || solicitud.fecha,
+                    "Solicitante": solicitud.solicitante,
+                    "Total General": solicitud.totalGeneral,
+                    "Moneda": monedas[solicitud.moneda || 'PEN'].nombre,
+                    "Detalles": solicitud.detalles.length + " ítems"
+                }));
+                const wsResumen = XLSX.utils.json_to_sheet(resumen);
+                XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
+                // Generar nombre de archivo con fecha
+                const today = new Date();
+                const fechaArchivo = today.toISOString().split('T')[0];
+                const filename = `todas_solicitudes_${fechaArchivo}.xlsx`;
+                // Descargar el archivo
+                XLSX.writeFile(wb, filename);
+            } catch (error) {
+                console.error('Error al generar el archivo Excel:', error);
+                alert('Hubo un error al generar el archivo Excel. Por favor, inténtelo de nuevo.');
+            }
+        }
+
+        // Función para crear un nuevo requerimiento
+        function nuevoRequerimiento() {
+            if (confirm("¿Desea crear un nuevo requerimiento? Se perderán los cambios no guardados.")) {
+                // Limpiar el formulario
+                const hoy = new Date();
+                const fechaFormateada = formatearFecha(hoy);
+                const fechaLegible = formatearFechaLegible(hoy);
+                document.getElementById("fechaSolicitud").value = fechaFormateada;
+                document.getElementById("fechaDocumento").textContent = fechaLegible;
+                document.getElementById("solicitante").value = "REINA";
+                document.getElementById("banco").value = "";
+                document.getElementById("transferencia").value = "";
+                document.getElementById("cuenta").value = "";
+                // Limpiar la tabla de detalles
+                const tbody = document.querySelector("#detallesTable tbody");
+                tbody.innerHTML = '';
+                // Agregar una fila vacía
+                agregarFila();
+                // Actualizar el número de requerimiento
+                actualizarNumeroRequerimiento();
+                // Calcular total general
+                calcularTotalGeneral();
+            }
+        }
+
+        // Función para descargar como PNG
+        async function descargarComoPNG() {
+            try {
+                // Preparar el área completa de impresión
+                const fullPrintArea = document.getElementById("fullPrintArea");
+                const numeroRequerimientoPrint = document.getElementById("numeroRequerimientoPrint");
+                const fechaDocumentoPrint = document.getElementById("fechaDocumentoPrint");
+                const fechaSolicitudPrint = document.getElementById("fechaSolicitudPrint");
+                const solicitantePrint = document.getElementById("solicitantePrint");
+                const bancoPrint = document.getElementById("bancoPrint");
+                const transferenciaPrint = document.getElementById("transferenciaPrint");
+                const cuentaPrint = document.getElementById("cuentaPrint");
+                const detallesTableBodyPrint = document.getElementById("detallesTableBodyPrint");
+                const totalGeneralPrint = document.getElementById("totalGeneralPrint");
+                // Actualizar los valores en el área de impresión
+                numeroRequerimientoPrint.textContent = document.getElementById("numeroRequerimiento").textContent;
+                fechaDocumentoPrint.textContent = document.getElementById("fechaDocumento").textContent;
+                fechaSolicitudPrint.textContent = document.getElementById("fechaSolicitud").value;
+                solicitantePrint.textContent = document.getElementById("solicitante").value;
+                bancoPrint.textContent = document.getElementById("banco").value;
+                transferenciaPrint.textContent = document.getElementById("transferencia").value;
+                cuentaPrint.textContent = document.getElementById("cuenta").value;
+                totalGeneralPrint.textContent = document.getElementById("totalGeneral").textContent;
+                // Limpiar y copiar filas de la tabla
+                detallesTableBodyPrint.innerHTML = '';
+                document.querySelectorAll("#detallesTable tbody tr").forEach(fila => {
+                    const inputs = fila.querySelectorAll("input");
+                    const select = fila.querySelector("select");
+                    const total = fila.querySelectorAll("td")[6].querySelector("span").textContent;
+                    const tr = document.createElement("tr");
+                    // Placa
+                    const tdPlaca = document.createElement("td");
+                    tdPlaca.textContent = inputs[0].value;
+                    tr.appendChild(tdPlaca);
+                    // Concepto
+                    const tdConcepto = document.createElement("td");
+                    tdConcepto.textContent = inputs[1].value;
+                    tr.appendChild(tdConcepto);
+                    // Centro de costo
+                    const tdCentro = document.createElement("td");
+                    tdCentro.textContent = select.value;
+                    // Agregar clase de color
+                    if (select.value === "R.R.H.H") {
+                        tdCentro.className = "centro-rrhh";
+                    } else if (select.value === "SSOMA") {
+                        tdCentro.className = "centro-ssoma";
+                    } else if (select.value === "RESERVAS") {
+                        tdCentro.className = "centro-reservas";
+                    } else if (select.value === "TESORERÍA") {
+                        tdCentro.className = "centro-tesoreria";
+                    } else if (select.value === "ADMINISTRACIÓN") {
+                        tdCentro.className = "centro-administracion";
+                    } else if (select.value === "OPERACIONES") {
+                        tdCentro.className = "centro-operaciones";
+                    } else if (select.value === "MANTENIMIENTO") {
+                        tdCentro.className = "centro-mantenimiento";
+                    } else if (select.value === "OTROS") {
+                        tdCentro.className = "centro-otros";
+                    }
+                    tr.appendChild(tdCentro);
+                    // Razón social
+                    const tdRazon = document.createElement("td");
+                    tdRazon.textContent = inputs[2].value;
+                    tr.appendChild(tdRazon);
+                    // Cantidad
+                    const tdCantidad = document.createElement("td");
+                    tdCantidad.textContent = inputs[3].value;
+                    tr.appendChild(tdCantidad);
+                    // Precio unitario
+                    const tdPrecio = document.createElement("td");
+                    tdPrecio.textContent = inputs[4].value;
+                    tr.appendChild(tdPrecio);
+                    // Total
+                    const tdTotal = document.createElement("td");
+                    tdTotal.className = "right-aligned";
+                    tdTotal.textContent = total;
+                    tr.appendChild(tdTotal);
+                    detallesTableBodyPrint.appendChild(tr);
+                });
+                // Mostrar mensaje de carga
+                const originalHTML = document.querySelector(".download-button:nth-child(2)").innerHTML;
+                const button = document.querySelector(".download-button:nth-child(2)");
+                button.innerHTML = "Procesando...";
+                button.disabled = true;
+                // Forzar la carga de la imagen
+                const logo = fullPrintArea.querySelector(".logo");
+                const imgSrc = "https://uploads.onecompiler.io/43ttff4xr/43tten3uu/Imagen%20de%20WhatsApp%202025-08-15%20a%20las%2016.43.48_052c34ce.jpg";
+                // Actualizar la fuente de la imagen
+                logo.src = "";
+                setTimeout(() => {
+                    logo.src = imgSrc;
+                    if (logo.complete) {
+                        generarImagen();
+                    } else {
+                        logo.onload = generarImagen;
+                        logo.onerror = function() {
+                            console.error('Error al cargar la imagen');
+                            alert('Hubo un problema al cargar la imagen del logo. Verifique la URL de la imagen.');
+                            button.innerHTML = originalHTML;
+                            button.disabled = false;
+                        };
+                    }
+                }, 100);
+                function generarImagen() {
+                    // Usar html2canvas para capturar el contenido como imagen
+                    html2canvas(fullPrintArea, {
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                        width: fullPrintArea.scrollWidth,
+                        height: fullPrintArea.scrollHeight
+                    }).then(function(canvas) {
+                        // Convertir canvas a imagen PNG
+                        const imgData = canvas.toDataURL("image/png");
+                        // Crear enlace de descarga
+                        const link = document.createElement('a');
+                        const numeroReq = document.getElementById("numeroRequerimiento").textContent;
+                        const today = new Date().toISOString().split('T')[0];
+                        link.download = `solicitud_requerimientos_${numeroReq}_${today}.png`;
+                        link.href = imgData;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        // Restaurar botón
+                        button.innerHTML = originalHTML;
+                        button.disabled = false;
+                    }).catch(function(error) {
+                        console.error('Error al generar la imagen PNG:', error);
+                        alert('Hubo un error al generar la imagen. Por favor, inténtelo de nuevo.');
+                        // Restaurar botón
+                        button.innerHTML = originalHTML;
+                        button.disabled = false;
+                    });
+                }
+            } catch (error) {
+                console.error('Error al generar la imagen PNG:', error);
+                alert('Hubo un error al generar la imagen. Por favor, inténtelo de nuevo.');
+                // Restaurar botón
+                const button = document.querySelector(".download-button:nth-child(2)");
+                button.innerHTML = "Descargar como PNG";
+                button.disabled = false;
+            }
+        }
+
+        // Función para descargar como JPG
+        async function descargarComoJPG() {
+            try {
+                // Preparar el área completa de impresión
+                const fullPrintArea = document.getElementById("fullPrintArea");
+                const numeroRequerimientoPrint = document.getElementById("numeroRequerimientoPrint");
+                const fechaDocumentoPrint = document.getElementById("fechaDocumentoPrint");
+                const fechaSolicitudPrint = document.getElementById("fechaSolicitudPrint");
+                const solicitantePrint = document.getElementById("solicitantePrint");
+                const bancoPrint = document.getElementById("bancoPrint");
+                const transferenciaPrint = document.getElementById("transferenciaPrint");
+                const cuentaPrint = document.getElementById("cuentaPrint");
+                const detallesTableBodyPrint = document.getElementById("detallesTableBodyPrint");
+                const totalGeneralPrint = document.getElementById("totalGeneralPrint");
+                // Actualizar los valores en el área de impresión
+                numeroRequerimientoPrint.textContent = document.getElementById("numeroRequerimiento").textContent;
+                fechaDocumentoPrint.textContent = document.getElementById("fechaDocumento").textContent;
+                fechaSolicitudPrint.textContent = document.getElementById("fechaSolicitud").value;
+                solicitantePrint.textContent = document.getElementById("solicitante").value;
+                bancoPrint.textContent = document.getElementById("banco").value;
+                transferenciaPrint.textContent = document.getElementById("transferencia").value;
+                cuentaPrint.textContent = document.getElementById("cuenta").value;
+                totalGeneralPrint.textContent = document.getElementById("totalGeneral").textContent;
+                // Limpiar y copiar filas de la tabla
+                detallesTableBodyPrint.innerHTML = '';
+                document.querySelectorAll("#detallesTable tbody tr").forEach(fila => {
+                    const inputs = fila.querySelectorAll("input");
+                    const select = fila.querySelector("select");
+                    const total = fila.querySelectorAll("td")[6].querySelector("span").textContent;
+                    const tr = document.createElement("tr");
+                    // Placa
+                    const tdPlaca = document.createElement("td");
+                    tdPlaca.textContent = inputs[0].value;
+                    tr.appendChild(tdPlaca);
+                    // Concepto
+                    const tdConcepto = document.createElement("td");
+                    tdConcepto.textContent = inputs[1].value;
+                    tr.appendChild(tdConcepto);
+                    // Centro de costo
+                    const tdCentro = document.createElement("td");
+                    tdCentro.textContent = select.value;
+                    // Agregar clase de color
+                    if (select.value === "R.R.H.H") {
+                        tdCentro.className = "centro-rrhh";
+                    } else if (select.value === "SSOMA") {
+                        tdCentro.className = "centro-ssoma";
+                    } else if (select.value === "RESERVAS") {
+                        tdCentro.className = "centro-reservas";
+                    } else if (select.value === "TESORERÍA") {
+                        tdCentro.className = "centro-tesoreria";
+                    } else if (select.value === "ADMINISTRACIÓN") {
+                        tdCentro.className = "centro-administracion";
+                    } else if (select.value === "OPERACIONES") {
+                        tdCentro.className = "centro-operaciones";
+                    } else if (select.value === "MANTENIMIENTO") {
+                        tdCentro.className = "centro-mantenimiento";
+                    } else if (select.value === "OTROS") {
+                        tdCentro.className = "centro-otros";
+                    }
+                    tr.appendChild(tdCentro);
+                    // Razón social
+                    const tdRazon = document.createElement("td");
+                    tdRazon.textContent = inputs[2].value;
+                    tr.appendChild(tdRazon);
+                    // Cantidad
+                    const tdCantidad = document.createElement("td");
+                    tdCantidad.textContent = inputs[3].value;
+                    tr.appendChild(tdCantidad);
+                    // Precio unitario
+                    const tdPrecio = document.createElement("td");
+                    tdPrecio.textContent = inputs[4].value;
+                    tr.appendChild(tdPrecio);
+                    // Total
+                    const tdTotal = document.createElement("td");
+                    tdTotal.className = "right-aligned";
+                    tdTotal.textContent = total;
+                    tr.appendChild(tdTotal);
+                    detallesTableBodyPrint.appendChild(tr);
+                });
+                // Mostrar mensaje de carga
+                const originalHTML = document.querySelector(".download-button:nth-child(3)").innerHTML;
+                const button = document.querySelector(".download-button:nth-child(3)");
+                button.innerHTML = "Procesando...";
+                button.disabled = true;
+                // Forzar la carga de la imagen
+                const logo = fullPrintArea.querySelector(".logo");
+                const imgSrc = "https://uploads.onecompiler.io/43ttff4xr/43tten3uu/Imagen%20de%20WhatsApp%202025-08-15%20a%20las%2016.43.48_052c34ce.jpg";
+                // Actualizar la fuente de la imagen
+                logo.src = "";
+                setTimeout(() => {
+                    logo.src = imgSrc;
+                    if (logo.complete) {
+                        generarImagen();
+                    } else {
+                        logo.onload = generarImagen;
+                        logo.onerror = function() {
+                            console.error('Error al cargar la imagen');
+                            alert('Hubo un problema al cargar la imagen del logo. Verifique la URL de la imagen.');
+                            button.innerHTML = originalHTML;
+                            button.disabled = false;
+                        };
+                    }
+                }, 100);
+                function generarImagen() {
+                    // Usar html2canvas para capturar el contenido como imagen
+                    html2canvas(fullPrintArea, {
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                        width: fullPrintArea.scrollWidth,
+                        height: fullPrintArea.scrollHeight
+                    }).then(function(canvas) {
+                        // Convertir canvas a imagen JPG
+                        const imgData = canvas.toDataURL("image/jpeg", 0.9);
+                        // Crear enlace de descarga
+                        const link = document.createElement('a');
+                        const numeroReq = document.getElementById("numeroRequerimiento").textContent;
+                        const today = new Date().toISOString().split('T')[0];
+                        link.download = `solicitud_requerimientos_${numeroReq}_${today}.jpg`;
+                        link.href = imgData;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        // Restaurar botón
+                        button.innerHTML = originalHTML;
+                        button.disabled = false;
+                    }).catch(function(error) {
+                        console.error('Error al generar la imagen JPG:', error);
+                        alert('Hubo un error al generar la imagen. Por favor, inténtelo de nuevo.');
+                        // Restaurar botón
+                        button.innerHTML = originalHTML;
+                        button.disabled = false;
+                    });
+                }
+            } catch (error) {
+                console.error('Error al generar la imagen JPG:', error);
+                alert('Hubo un error al generar la imagen. Por favor, inténtelo de nuevo.');
+                // Restaurar botón
+                const button = document.querySelector(".download-button:nth-child(3)");
+                button.innerHTML = "Descargar como JPG";
+                button.disabled = false;
+            }
+        }
+
+        // Función para descargar como ZIP (incluye PNG y datos en texto)
+        async function descargarComoZIP() {
+            try {
+                const zip = new JSZip();
+                const numeroReq = document.getElementById("numeroRequerimiento").textContent;
+                const today = new Date().toISOString().split('T')[0];
+                // Mostrar mensaje de carga
+                const originalHTML = document.querySelector(".download-button:last-of-type").innerHTML;
+                const button = document.querySelector(".download-button:last-of-type");
+                button.innerHTML = "Procesando...";
+                button.disabled = true;
+                // Preparar el área completa de impresión
+                const fullPrintArea = document.getElementById("fullPrintArea");
+                const numeroRequerimientoPrint = document.getElementById("numeroRequerimientoPrint");
+                const fechaDocumentoPrint = document.getElementById("fechaDocumentoPrint");
+                const fechaSolicitudPrint = document.getElementById("fechaSolicitudPrint");
+                const solicitantePrint = document.getElementById("solicitantePrint");
+                const bancoPrint = document.getElementById("bancoPrint");
+                const transferenciaPrint = document.getElementById("transferenciaPrint");
+                const cuentaPrint = document.getElementById("cuentaPrint");
+                const detallesTableBodyPrint = document.getElementById("detallesTableBodyPrint");
+                const totalGeneralPrint = document.getElementById("totalGeneralPrint");
+                // Actualizar los valores en el área de impresión
+                numeroRequerimientoPrint.textContent = document.getElementById("numeroRequerimiento").textContent;
+                fechaDocumentoPrint.textContent = document.getElementById("fechaDocumento").textContent;
+                fechaSolicitudPrint.textContent = document.getElementById("fechaSolicitud").value;
+                solicitantePrint.textContent = document.getElementById("solicitante").value;
+                bancoPrint.textContent = document.getElementById("banco").value;
+                transferenciaPrint.textContent = document.getElementById("transferencia").value;
+                cuentaPrint.textContent = document.getElementById("cuenta").value;
+                totalGeneralPrint.textContent = document.getElementById("totalGeneral").textContent;
+                // Limpiar y copiar filas de la tabla
+                detallesTableBodyPrint.innerHTML = '';
+                document.querySelectorAll("#detallesTable tbody tr").forEach(fila => {
+                    const inputs = fila.querySelectorAll("input");
+                    const select = fila.querySelector("select");
+                    const total = fila.querySelectorAll("td")[6].querySelector("span").textContent;
+                    const tr = document.createElement("tr");
+                    // Placa
+                    const tdPlaca = document.createElement("td");
+                    tdPlaca.textContent = inputs[0].value;
+                    tr.appendChild(tdPlaca);
+                    // Concepto
+                    const tdConcepto = document.createElement("td");
+                    tdConcepto.textContent = inputs[1].value;
+                    tr.appendChild(tdConcepto);
+                    // Centro de costo
+                    const tdCentro = document.createElement("td");
+                    tdCentro.textContent = select.value;
+                    // Agregar clase de color
+                    if (select.value === "R.R.H.H") {
+                        tdCentro.className = "centro-rrhh";
+                    } else if (select.value === "SSOMA") {
+                        tdCentro.className = "centro-ssoma";
+                    } else if (select.value === "RESERVAS") {
+                        tdCentro.className = "centro-reservas";
+                    } else if (select.value === "TESORERÍA") {
+                        tdCentro.className = "centro-tesoreria";
+                    } else if (select.value === "ADMINISTRACIÓN") {
+                        tdCentro.className = "centro-administracion";
+                    } else if (select.value === "OPERACIONES") {
+                        tdCentro.className = "centro-operaciones";
+                    } else if (select.value === "MANTENIMIENTO") {
+                        tdCentro.className = "centro-mantenimiento";
+                    } else if (select.value === "OTROS") {
+                        tdCentro.className = "centro-otros";
+                    }
+                    tr.appendChild(tdCentro);
+                    // Razón social
+                    const tdRazon = document.createElement("td");
+                    tdRazon.textContent = inputs[2].value;
+                    tr.appendChild(tdRazon);
+                    // Cantidad
+                    const tdCantidad = document.createElement("td");
+                    tdCantidad.textContent = inputs[3].value;
+                    tr.appendChild(tdCantidad);
+                    // Precio unitario
+                    const tdPrecio = document.createElement("td");
+                    tdPrecio.textContent = inputs[4].value;
+                    tr.appendChild(tdPrecio);
+                    // Total
+                    const tdTotal = document.createElement("td");
+                    tdTotal.className = "right-aligned";
+                    tdTotal.textContent = total;
+                    tr.appendChild(tdTotal);
+                    detallesTableBodyPrint.appendChild(tr);
+                });
+                // Forzar la carga de la imagen
+                const logo = fullPrintArea.querySelector(".logo");
+                const imgSrc = "https://uploads.onecompiler.io/43ttff4xr/43tten3uu/Imagen%20de%20WhatsApp%202025-08-15%20a%20las%2016.43.48_052c34ce.jpg";
+                // Actualizar la fuente de la imagen
+                logo.src = "";
+                setTimeout(() => {
+                    logo.src = imgSrc;
+                    if (logo.complete) {
+                        generarZIP();
+                    } else {
+                        logo.onload = generarZIP;
+                        logo.onerror = function() {
+                            console.error('Error al cargar la imagen');
+                            alert('Hubo un problema al cargar la imagen del logo. Verifique la URL de la imagen.');
+                            button.innerHTML = originalHTML;
+                            button.disabled = false;
+                        };
+                    }
+                }, 100);
+                function generarZIP() {
+                    // 1. Agregar imagen PNG al ZIP
+                    html2canvas(fullPrintArea, {
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                        width: fullPrintArea.scrollWidth,
+                        height: fullPrintArea.scrollHeight
+                    }).then(async function(canvas) {
+                        const imgData = canvas.toDataURL("image/png");
+                        const imgBlob = dataURLToBlob(imgData);
+                        zip.file(`solicitud_requerimientos_${numeroReq}_${today}.png`, imgBlob);
+                        // 2. Crear archivo de texto con los datos
+                        let txtContent = "FORMATO DE SOLICITUD DE REQUERIMIENTOS\n";
+                        txtContent += `Número de Requerimiento: ${numeroReq}\n`;
+                        txtContent += `Fecha: ${document.getElementById("fechaDocumento").textContent}\n`;
+                        txtContent += "DETALLES DE LA SOLICITUD:\n";
+                        txtContent += `Fecha de Solicitud: ${document.getElementById("fechaSolicitud").value}\n`;
+                        txtContent += `Solicitante: ${document.getElementById("solicitante").value}\n`;
+                        txtContent += `Banco: ${document.getElementById("banco").value}\n`;
+                        txtContent += `N° Transferencia: ${document.getElementById("transferencia").value}\n`;
+                        txtContent += `N° Cuenta/CCI: ${document.getElementById("cuenta").value}\n`;
+                        txtContent += "DETALLES DE GASTOS:\n";
+                        txtContent += "PLACA\tCONCEPTO\tCENTRO DE COSTO\tRAZÓN SOCIAL\tCANTIDAD\tP. UNITARIO\tTOTAL\n";
+                        document.querySelectorAll("#detallesTable tbody tr").forEach(fila => {
+                            const inputs = fila.querySelectorAll("input");
+                            const select = fila.querySelector("select");
+                            const total = fila.querySelectorAll("td")[6].querySelector("span").textContent;
+                            txtContent += `${inputs[0].value}\t${inputs[1].value}\t${select.value}\t${inputs[2].value}\t${inputs[3].value}\t${inputs[4].value}\t${total}\n`;
+                        });
+                        txtContent += `\nTotal General: ${document.getElementById("totalGeneral").textContent}`;
+                        zip.file(`datos_solicitud_${numeroReq}_${today}.txt`, txtContent);
+                        // 3. Generar el archivo ZIP
+                        const content = await zip.generateAsync({type: "blob"});
+                        // 4. Descargar el archivo ZIP
+                        saveAs(content, `solicitud_requerimientos_${numeroReq}_${today}.zip`);
+                        // Restaurar botón
+                        button.innerHTML = originalHTML;
+                        button.disabled = false;
+                    }).catch(function(error) {
+                        console.error('Error al generar el archivo ZIP:', error);
+                        alert('Hubo un error al generar el archivo ZIP. Por favor, inténtelo de nuevo.');
+                        // Restaurar botón
+                        button.innerHTML = originalHTML;
+                        button.disabled = false;
+                    });
+                }
+            } catch (error) {
+                console.error('Error al generar el archivo ZIP:', error);
+                alert('Hubo un error al generar el archivo ZIP. Por favor, inténtelo de nuevo.');
+                // Restaurar botón
+                const button = document.querySelector(".download-button:last-of-type");
+                button.innerHTML = "Descargar como ZIP";
+                button.disabled = false;
+            }
+        }
+
+        // Función auxiliar para convertir data URL a Blob
+        function dataURLToBlob(dataURL) {
+            const arr = dataURL.split(',');
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new Blob([u8arr], {type: mime});
+        }
+    </script>
+</body>
+</html>
